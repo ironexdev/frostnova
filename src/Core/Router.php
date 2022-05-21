@@ -2,6 +2,7 @@
 
 namespace Frostnova\Core;
 
+use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -10,7 +11,11 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class Router implements MiddlewareInterface
 {
-    public function __construct(private ResponseFactoryInterface $responseFactory, private array $routes)
+    public function __construct(
+        private ContainerInterface       $container,
+        private ResponseFactoryInterface $responseFactory,
+        private array                    $routes
+    )
     {
     }
 
@@ -20,12 +25,13 @@ class Router implements MiddlewareInterface
 
         $resolver = $this->routes[$request->getUri()->getPath()][$request->getMethod()]["handler"] ?? null;
 
-        if(!$resolver)
-        {
+        if (!$resolver) {
             return $handler->handle($request);
         }
 
         list($controller, $method) = explode("::", $resolver);
+
+        $controller = $this->container->get($controller);
 
         return call_user_func([$controller, $method], $request, $response);
     }
