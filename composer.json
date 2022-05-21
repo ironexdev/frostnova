@@ -14,7 +14,7 @@
     "psr/http-factory": "^1.0"
   },
   "type": "library",
-  "description": "",
+  "description": "Fully customizable PSR compatible PHP framework",
   "config": {
     "allow-plugins": {
       "composer/package-versions-deprecated": true
