@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use ReflectionException;
 
 class Router implements MiddlewareInterface
 {
@@ -33,6 +34,34 @@ class Router implements MiddlewareInterface
 
         $controller = $this->container->get($controller);
 
-        return call_user_func([$controller, $method], $request, $response);
+        $initialArguments = [$request, $response];
+
+        $additionalArguments = [];
+
+        foreach ($this->getArguments($controller, $method) as $argument) {
+            $additionalArguments[] = $this->container->get($argument);
+        }
+
+        $arguments = $additionalArguments ? array_merge($initialArguments, $additionalArguments) : $initialArguments;
+
+        return call_user_func_array([$controller, $method], $arguments);
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    private function getArguments(object $controller, string $method): array
+    {
+        $reflection = new \ReflectionMethod($controller, $method);
+
+        $result = [];
+
+        foreach ($reflection->getParameters() as $param) {
+            if (!in_array($param->getType()->getName(), ["Psr\Http\Message\RequestInterface", "Psr\Http\Message\ResponseInterface"])) {
+                $result[] = $param->getType()->getName();
+            }
+        }
+
+        return $result;
     }
 }
